@@ -1,0 +1,83 @@
+/* src/styles/toast.css */
+
+/* Customize the ToastContainer itself */
+.Toastify__toast-container {
+  background-color: transparent !important;
+  background: none;
+  width: auto !important;
+  display: flex;
+  flex-direction: column;
+  align-items: end !important;
+  justify-content: end !important;
+  z-index: 50000;
+}
+
+.Toastify__toast {
+  width: fit-content !important;
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: stretch !important; /* Makes the items inside fill the height */
+  padding: 0 4px !important;
+  margin: 2px 0 !important;
+  height: fit-content !important; /* Flexible height based on content */
+  margin-bottom: 0px !important; /* To create gap on mutliple toast notifications */
+  background-color: transparent !important;
+  background: none;
+  box-shadow: none;
+  justify-content: end !important;
+  align-self: self-end;
+}
+
+.Toastify__toast-body {
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+  padding: 0 !important;
+  margin: 0 !important;
+  height: 100% !important;
+  background-color: transparent !important;
+  overflow: auto;
+  border-radius: 8px;
+  box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.15);
+}
+
+.Toastify__progress-bar--bg {
+  padding: 0;
+  margin: 0;
+  display: none;
+}
+
+.Toastify__progress-bar--wrp {
+  display: absolute;
+  left: 6px;
+  background-color: transparent !important;
+  color: green;
+  /* display: none; */
+}
+
+.custom-progress-bar .Toastify__progress-bar {
+  background-color: #33ABFF; /* Customize to match your theme */
+  height: 4px; /* Adjust thickness */
+}
+
+.Toastify__close-button {
+  display: none;
+}
+
+/* Mobile styles */
+@media (max-width: 640px) {
+  .Toastify__toast-container {
+    width: 100%;
+    right: 0;
+    top: 50px; /* Adjust space from top on mobile */
+    align-items: end;
+    justify-items: end;
+  }
+
+  .Toastify__toast {
+    padding: 0;
+    margin: 0;
+    width: 100%;
+    margin: 5px !important;
+  }
+}
