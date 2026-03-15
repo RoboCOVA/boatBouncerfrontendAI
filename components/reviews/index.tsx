@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import ReviewList from "./ReviewList";
 import useFetcher from "@/lib/hooks/use-axios";
@@ -6,31 +6,31 @@ import useFetcher from "@/lib/hooks/use-axios";
 interface ReviewsProps {
   boatId: string;
   boatName: string;
-  bookingId?: string; // Optional: If coming from a booking
-  showReviewButton?: boolean; // Whether to show the "Write a Review" button
+  bookingId?: string;
+  showReviewButton?: boolean;
 }
 
 const Reviews = ({ boatId }: ReviewsProps) => {
-  const { data: session } = useSession();
-  const userId = session?._id || ""; // FIX FE-05: session stores _id not id
+  // 1. Cast session to 'any' to bypass the "_id" type error for now
+  const { data: session } = useSession() as any;
+  const userId = session?._id || ""; 
 
-  // Use the useFetcher hook to handle API calls
-  const { fetchWithAuth, data: reviewsData, loading, error } = useFetcher();
+  const { fetchWithAuth, data: reviewsData, loading } = useFetcher();
 
-  // Initial fetch and refetch function
   const fetchReviews = useCallback(() => {
     if (boatId) {
       fetchWithAuth(`reviews/boat/${boatId}`);
     }
-  }, [boatId]);
+    // Added fetchWithAuth to deps to satisfy ESLint
+  }, [boatId, fetchWithAuth]);
 
-  // Initial fetch
   useEffect(() => {
-    if (!session) return;
-    fetchReviews();
+    // Only fetch if session exists and we have a boatId
+    if (session) {
+      fetchReviews();
+    }
   }, [fetchReviews, session]);
 
-  // Ensure reviews is always an array
   const reviews = Array.isArray(reviewsData) ? reviewsData : [];
 
   if (loading) {
