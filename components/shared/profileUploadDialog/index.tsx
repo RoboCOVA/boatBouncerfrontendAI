@@ -3,7 +3,7 @@ import React, { ChangeEvent, ReactNode, useState } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
 import { Cross2Icon } from "@radix-ui/react-icons";
 import { CircularProgress } from "@mui/material";
-import { UploadCloud, X } from "lucide-react";
+import { UploadCloud } from "lucide-react";
 import useFetcher from "@/lib/hooks/use-axios";
 import { useSession } from "next-auth/react";
 import { ShowToast } from "@/components/shared/CustomToast";
@@ -18,15 +18,17 @@ const ProfileUploadDialog = ({
   open: boolean;
 }) => {
   const [loading, setLoading] = useState(false);
-  const [file, setFile] = useState(null);
-  const { data: session, update: sessionUpdate } = useSession();
+  const [file, setFile] = useState<string | null>(null);
+  
+  // FIX: Cast to 'any' so TypeScript allows session._id
+  const { data: session, update: sessionUpdate } = useSession() as any;
 
   const { fetchWithAuthSync, updateUser } = useFetcher();
 
   const handleFileChange = async (event: ChangeEvent<HTMLInputElement>) => {
     let uploadedFiles = event.target.files;
 
-    if (!uploadedFiles) {
+    if (!uploadedFiles || uploadedFiles.length === 0) {
       ShowToast({
         status: "fail",
         title: "No file selected",
@@ -36,7 +38,6 @@ const ProfileUploadDialog = ({
     }
 
     const formData = new FormData();
-
     formData.append("pictures", uploadedFiles[0]);
 
     setLoading(true);
@@ -45,22 +46,17 @@ const ProfileUploadDialog = ({
     fetchWithAuthSync("/upload/public/BOAT", formData)
       .then((response: any) => {
         setLoading(false);
-        if (
-          response.data?.uploadedFiles?.length &&
-          response.data?.uploadedFiles?.length > 0
-        ) {
-          let imageUrl = response.data?.uploadedFiles?.map(
-            (file: any) => file?.secureUrl,
+        if (response.data?.uploadedFiles?.length > 0) {
+          const imageUrl = response.data.uploadedFiles.map(
+            (file: any) => file?.secureUrl
           );
-
           setFile(imageUrl[0]);
         } else {
           setFile(null);
           ShowToast({
             status: "fail",
             title: "Upload Failed",
-            message:
-              "An error occurred while uploading the profile picture. Please try again.",
+            message: "An error occurred while uploading. Please try again.",
           });
         }
       })
@@ -70,14 +66,14 @@ const ProfileUploadDialog = ({
           message: "Failed to upload image, please try again",
           status: "fail",
         });
-
         setLoading(false);
         setFile(null);
       });
   };
 
   const handleUploadPicture = () => {
-    updateUser(`user/updateProfilePicture/${session?._id}`, { // FIX FE-05: session stores _id not id
+    // Session._id will now be accepted by the compiler
+    updateUser(`user/updateProfilePicture/${session?._id}`, {
       profilePicture: file,
     }).then(() => {
       sessionUpdate({
@@ -88,81 +84,69 @@ const ProfileUploadDialog = ({
   };
 
   return (
-    <Dialog.Root open={open}>
+    <Dialog.Root open={open} onOpenChange={setOpen}>
       <Dialog.Trigger asChild>{children}</Dialog.Trigger>
       <Dialog.Portal>
         <Dialog.Overlay
-          onClick={() => setOpen(false)}
-          className={`fixed inset-0 bg-blackA6 backdrop-brightness-50 data-[state=open]:animate-overlayShow`}
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 animate-overlayShow"
         />
         <Dialog.Content
-          className={`fixed left-[50%] top-[50%] z-10 w-[90vw] max-w-[450px] translate-x-[-50%] translate-y-[-50%] rounded-[6px] bg-white p-[25px] shadow-[hsl(206_22%_7%_/_35%)_0px_10px_38px_-10px,_hsl(206_22%_7%_/_20%)_0px_10px_20px_-15px] focus:outline-none data-[state=open]:animate-contentShow`}
+          className="fixed left-[50%] top-[50%] z-[60] w-[90vw] max-w-[450px] translate-x-[-50%] translate-y-[-50%] rounded-[6px] bg-white p-[25px] shadow-xl focus:outline-none animate-contentShow"
         >
-          <Dialog.Title className="m-0 text-[17px] font-medium text-mauve12">
+          <Dialog.Title className="m-0 text-[17px] font-bold text-gray-900">
             Add a profile photo
           </Dialog.Title>
-          <Dialog.Description className="mb-5 mt-[10px] text-[15px] leading-normal text-mauve11"></Dialog.Description>
-          <label htmlFor="profileUpload" className="h-full w-full">
-            {loading && (
-              <div className="flex h-full w-full items-center justify-center text-cyan-600">
-                <CircularProgress color="inherit" size="5vh" />
-              </div>
-            )}
-            {!loading && !file && (
-              <div className="relative flex h-full w-full items-center justify-center">
-                <div className="flex flex-col items-center justify-center gap-1">
-                  <div className="flex w-fit items-center justify-center rounded-full bg-gray-50 p-[10px]">
-                    <UploadCloud className="h-10 w-10 rounded-full bg-gray-100 p-[10px]" />
-                  </div>
-                  <p className="cursor-pointer text-center text-sm font-medium text-cyan-600">
-                    Upload Your Photo ...
-                  </p>
-                </div>
-              </div>
-            )}
-
-            {!loading && !!file && (
-              <div className="relative h-full w-full">
+          
+          <div className="mt-4 flex flex-col items-center justify-center min-h-[200px] border-2 border-dashed border-gray-200 rounded-lg">
+            <label htmlFor="profileUpload" className="cursor-pointer h-full w-full flex items-center justify-center">
+              {loading ? (
+                <CircularProgress color="inherit" />
+              ) : file ? (
                 <img
-                  className="h-full w-full rounded object-cover"
+                  className="h-40 w-40 rounded-full object-cover border"
                   src={file}
-                  alt=""
+                  alt="Preview"
                 />
-              </div>
-            )}
-          </label>
+              ) : (
+                <div className="flex flex-col items-center gap-2">
+                  <UploadCloud className="h-10 w-10 text-gray-400" />
+                  <p className="text-sm font-medium text-cyan-600">Upload Your Photo</p>
+                </div>
+              )}
+            </label>
+          </div>
+
           <input
             type="file"
             name="profileUpload"
             id="profileUpload"
-            onClick={(e) => {
-              (e.target as HTMLInputElement).value = "";
-            }}
-            accept="image/svg, image/png, image/jpg, image/jpeg, image/gif"
-            onChange={(event) => handleFileChange(event)}
-            className="invisible hidden h-fit"
+            accept="image/*"
+            onChange={handleFileChange}
+            className="hidden"
           />
-          <div className="mt-[25px] flex justify-end gap-5">
+
+          <div className="mt-[25px] flex justify-end gap-3">
             {file && (
               <button
                 type="button"
                 onClick={() => setFile(null)}
-                className="inline-flex h-[35px] items-center justify-center rounded-[4px] bg-green4 px-[15px] font-medium leading-none text-red-700 hover:bg-green5 focus:shadow-[0_0_0_2px] focus:shadow-green7 focus:outline-none"
+                className="px-4 py-2 text-sm font-medium text-red-600 bg-red-50 rounded-md hover:bg-red-100"
               >
                 Remove
               </button>
             )}
-
             <button
               onClick={handleUploadPicture}
-              className="inline-flex h-[35px] items-center justify-center rounded-[4px] bg-green4 px-[25px] font-medium leading-none text-green11 hover:bg-green5 focus:shadow-[0_0_0_2px] focus:shadow-green7 focus:outline-none"
+              disabled={!file || loading}
+              className="px-4 py-2 text-sm font-medium text-white bg-cyan-600 rounded-md hover:bg-cyan-700 disabled:opacity-50"
             >
-              Save
+              Save Changes
             </button>
           </div>
-          <Dialog.Close asChild onClick={() => setOpen(false)}>
+
+          <Dialog.Close asChild>
             <button
-              className="absolute right-[10px] top-[10px] inline-flex h-[25px] w-[25px] appearance-none items-center justify-center rounded-full text-violet11 hover:bg-violet4 focus:shadow-[0_0_0_2px] focus:shadow-violet7 focus:outline-none"
+              className="absolute right-3 top-3 text-gray-400 hover:text-gray-600"
               aria-label="Close"
             >
               <Cross2Icon />
